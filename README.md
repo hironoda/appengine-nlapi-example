@@ -37,7 +37,6 @@
 ## Deploy the application
 
 ```shell
-$ pip install -r requirements.txt -t lib
 $ gcloud app create
 $ gcloud app deploy
 ```

@@ -1,15 +1,14 @@
-# -*- coding: utf-8 -*-
+# [START app]
 import os
 import logging
 import random
 import tweepy
-import requests_toolbelt.adapters.appengine
 
 from flask import Flask, render_template, request
 from google.cloud import language
-from google.cloud.language.entity import EntityType
+from google.cloud.language import enums
+from google.cloud.language import types
 
-requests_toolbelt.adapters.appengine.monkeypatch()
 app = Flask(__name__)
 
 
@@ -26,20 +25,25 @@ def collect_tweets(target):
 
 
 def process(text):
-    language_client = language.Client()
-    document = language_client.document_from_text(text)
-    annotated = document.annotate_text(include_syntax=False)
-
-    # calculate total score
+    # Instantiates a client
+    client = language.LanguageServiceClient()
+    # Instantiates a plain text document.
+    document = types.Document(
+        content=text,
+        type=enums.Document.Type.PLAIN_TEXT)
+    # Detects the sentiment of the text
+    result_analyze_sentiment = client.analyze_sentiment(document=document)
+    # Calculate total score
     total_score = 0.0
-    for sentence in annotated.sentences:
+    for sentence in result_analyze_sentiment.sentences:
         total_score += sentence.sentiment.magnitude * sentence.sentiment.score
-    # extract entities
+    # Detects entities in the document.
+    result_analyze_entities = client.analyze_entities(document=document)
+    # 
     entities = set()
-    for entity in annotated.entities:
-        if entity.entity_type not in [EntityType.OTHER, EntityType.UNKNOWN]:
+    for entity in result_analyze_entities.entities:
+        if entity.type not in ['OTHER', 'UNKNOWN']:
             entities.add(entity.name)
-
     return total_score, entities
 
 
@@ -62,7 +66,7 @@ def analyze():
     return render_template('result.html',
                            screen_name=screen_name,
                            total_score=total_score,
-                           comment=comment.decode('utf-8'),
+                           comment=comment,
                            samples=samples)
 
 
@@ -76,3 +80,9 @@ def server_error(e):
     # Log the error and stacktrace.
     logging.exception('An error occurred during a request.')
     return 'An internal error occurred.', 500
+
+if __name__ == '__main__':
+    # This is used when running locally. Gunicorn is used to run the
+    # application on Google App Engine. See entrypoint in app.yaml.
+    app.run(host='127.0.0.1', port=8080, debug=True)
+# [END app]
