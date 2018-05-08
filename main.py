@@ -42,7 +42,7 @@ def process(text):
     # 
     entities = set()
     for entity in result_analyze_entities.entities:
-        if entity.type not in ['OTHER', 'UNKNOWN']:
+        if entity.type not in [enums.Entity.Type.OTHER, enums.Entity.Type.UNKNOWN]:
             entities.add(entity.name)
     return total_score, entities
 
@@ -80,6 +80,7 @@ def server_error(e):
     # Log the error and stacktrace.
     logging.exception('An error occurred during a request.')
     return 'An internal error occurred.', 500
+
 
 if __name__ == '__main__':
     # This is used when running locally. Gunicorn is used to run the
